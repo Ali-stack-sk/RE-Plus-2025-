@@ -1,0 +1,453 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RE+ Meetings – Shared Schedule</title>
+  <meta name="theme-color" content="#0f172a" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { -webkit-font-smoothing: antialiased; }
+    .modal-backdrop { background: rgba(0,0,0,.45); }
+    /* Optional: slimmer scrollbar on attendee row */
+    .no-scrollbar::-webkit-scrollbar { height: 6px; }
+      /* Base font size 1.5x */
+    html { font-size: 24px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <div class="min-h-dvh">
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
+      <div class="max-w-md mx-auto flex items-center justify-between px-4 py-3">
+        <div class="flex items-baseline gap-2">
+          <h1 class="text-lg font-semibold tracking-tight">RE+ Meetings</h1>
+          <span class="text-[11px] text-slate-500">Sep 8–11</span>
+        </div>
+        <span class="text-[11px] text-slate-500">Mobile • English</span>
+      </div>
+    </header><!-- Filters + Add button -->
+<section class="bg-white border-b border-slate-200">
+  <div class="max-w-md mx-auto px-4 py-3 grid grid-cols-2 gap-2">
+    <div class="col-span-2">
+      <button id="addBtn" class="w-full rounded-2xl bg-slate-900 text-white py-2.5 text-sm font-medium shadow active:translate-y-px">+ Add Event</button>
+    </div>
+    <div>
+      <label class="block text-[11px] text-slate-500 mb-1">Date</label>
+      <select id="filterDate" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white">
+        <option value="">All Dates</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-[11px] text-slate-500 mb-1">Attendee</label>
+      <select id="filterAttendee" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white">
+        <option value="">All Attendees</option>
+      </select>
+    </div>
+    <div class="col-span-2">
+      <label class="block text-[11px] text-slate-500 mb-1">Type</label>
+      <select id="filterType" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm bg-white">
+        <option value="">All Types</option>
+        <option value="Regular">Regular</option>
+        <option value="Important">Important</option>
+        <option value="Dining">Dining</option>
+        <option value="Dining/Important">Dining/Important</option>
+      </select>
+    </div>
+  </div>
+</section>
+
+<!-- List -->
+<main class="max-w-md mx-auto p-4 space-y-3" id="list"></main>
+
+<!-- Contact Modal -->
+<div id="contactModal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-end sm:items-center justify-center">
+  <div class="absolute inset-0" data-close-contact></div>
+  <div class="relative w-full sm:max-w-md sm:rounded-2xl bg-white shadow-2xl max-h-[85vh] overflow-y-auto p-4 sm:p-6">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-base font-semibold">Contact</h2>
+      <button class="text-slate-500 text-sm" data-close-contact>✕</button>
+    </div>
+    <div class="space-y-2 text-sm">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="font-medium" id="cName"></div>
+          <div class="text-slate-600" id="cTitle"></div>
+        </div>
+        <a class="underline text-slate-700" id="cPhoneLink" href="#">Call</a>
+      </div>
+      <div class="rounded-xl border border-slate-200 p-3 text-slate-700">
+        <div class="text-xs uppercase tracking-wide text-slate-500">Phone</div>
+        <div class="font-mono mt-0.5" id="cPhone"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="formModal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-end sm:items-center justify-center">
+  <div class="absolute inset-0" data-close-form></div>
+  <div class="relative w-full sm:max-w-md sm:rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-base font-semibold" id="formTitle">Add Event</h2>
+      <button class="text-slate-500 text-sm" data-close-form>✕</button>
+    </div>
+    <form id="eventForm" class="space-y-3">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1">Date</label>
+          <input id="fDate" type="date" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1">Type</label>
+          <select id="fType" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+            <option>Regular</option>
+            <option>Important</option>
+            <option>Dining</option>
+            <option>Dining/Important</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1">Start</label>
+          <select id="fStart" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"></select>
+        </div>
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1">End</label>
+          <select id="fEnd" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"></select>
+        </div>
+        <div class="col-span-2">
+          <label class="block text-[11px] text-slate-500 mb-1">Location</label>
+          <input id="fLocation" type="text" placeholder="e.g., Venetian Expo – Hall A, Booth ####" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        </div>
+        <div class="col-span-2">
+          <label class="block text-[11px] text-slate-500 mb-1">Company</label>
+          <input id="fCompany" type="text" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1">Contact Name</label>
+          <input id="fContactName" type="text" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-1">Contact Title</label>
+          <input id="fContactTitle" type="text" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        </div>
+        <div class="col-span-2">
+          <label class="block text-[11px] text-slate-500 mb-1">Contact Phone</label>
+          <input id="fContactPhone" type="tel" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        </div>
+        <div class="col-span-2">
+          <label class="block text-[11px] text-slate-500 mb-1">Attendees</label>
+          <div id="fAttendees" class="flex flex-nowrap gap-2 whitespace-nowrap overflow-x-auto no-scrollbar"></div>
+        </div>
+        <div class="col-span-2">
+          <label class="block text-[11px] text-slate-500 mb-1">Notes (optional)</label>
+          <textarea id="fNotes" rows="3" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="Agenda, goals, reminders..."></textarea>
+        </div>
+      </div>
+      <div class="flex items-center justify-between pt-1">
+        <button type="button" id="deleteBtn" class="hidden text-red-600 text-sm">Delete</button>
+        <div class="flex items-center gap-2">
+          <button type="button" class="px-3 py-2 rounded-xl border border-slate-300 text-sm" data-close-form>Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm">Save</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div id="confirmModal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-end sm:items-center justify-center">
+  <div class="absolute inset-0" data-close-confirm></div>
+  <div class="relative w-full sm:max-w-sm sm:rounded-2xl bg-white shadow-2xl p-4 sm:p-6">
+    <h3 class="text-base font-semibold mb-2">Delete this event?</h3>
+    <p class="text-sm text-slate-600 mb-4">This action cannot be undone.</p>
+    <div class="flex items-center justify-end gap-2">
+      <button class="px-3 py-2 rounded-xl border border-slate-300 text-sm" data-close-confirm>Cancel</button>
+      <button id="confirmDelete" class="px-3 py-2 rounded-xl bg-red-600 text-white text-sm">Delete</button>
+    </div>
+  </div>
+</div>
+
+  </div>  <!-- App Script (Firebase + UI) -->  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getDatabase, ref, push, set, update, onValue, remove } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+
+    // ===== Firebase Config (exact values you provided) =====
+    const firebaseConfig = {
+      apiKey: "AIzaSyCCJNrjY9vDNCnzMoxoLgKTi50q2Wc5HGQ",
+      authDomain: "re-plus-schedule.firebaseapp.com",
+      databaseURL: "https://re-plus-schedule-default-rtdb.firebaseio.com/",
+      projectId: "re-plus-schedule",
+      storageBucket: "re-plus-schedule.firebasestorage.app",
+      messagingSenderId: "610848798787",
+      appId: "1:610848798787:web:f1ed56271604a828293cf6"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // ===== Constants =====
+    const PEOPLE = ["DJ", "Phil", "Ray", "JH", "HS", "Ali"];
+    const TYPE_STYLES = {
+      "Regular": { card: "bg-white border border-slate-200", badge: "bg-white text-slate-700 border border-slate-200" },
+      "Important": { card: "bg-orange-50 border border-orange-200", badge: "bg-orange-100 text-orange-800" },
+      "Dining": { card: "bg-green-50 border border-green-200", badge: "bg-green-100 text-green-800" },
+      "Dining/Important": { card: "bg-green-200 border border-green-300", badge: "bg-green-300 text-green-900" },
+    };
+
+    // ===== Elements =====
+    const listEl = document.getElementById('list');
+    const addBtn = document.getElementById('addBtn');
+    const filterDate = document.getElementById('filterDate');
+    const filterAttendee = document.getElementById('filterAttendee');
+    const filterType = document.getElementById('filterType');
+
+    const contactModal = document.getElementById('contactModal');
+    const formModal = document.getElementById('formModal');
+    const confirmModal = document.getElementById('confirmModal');
+
+    const cName = document.getElementById('cName');
+    const cTitle = document.getElementById('cTitle');
+    const cPhone = document.getElementById('cPhone');
+    const cPhoneLink = document.getElementById('cPhoneLink');
+
+    const form = document.getElementById('eventForm');
+    const formTitle = document.getElementById('formTitle');
+    const fDate = document.getElementById('fDate');
+    const fType = document.getElementById('fType');
+    const fStart = document.getElementById('fStart');
+    const fEnd = document.getElementById('fEnd');
+    const fLocation = document.getElementById('fLocation');
+    const fCompany = document.getElementById('fCompany');
+    const fContactName = document.getElementById('fContactName');
+    const fContactTitle = document.getElementById('fContactTitle');
+    const fContactPhone = document.getElementById('fContactPhone');
+    const fAttendees = document.getElementById('fAttendees');
+    const fNotes = document.getElementById('fNotes');
+    const deleteBtn = document.getElementById('deleteBtn');
+
+    let deleteKey = null; // for confirm modal
+    let editingKey = null; // null for add
+
+    // Helpers for attendee button state (always visible text)
+    function setAttendeeBtn(btn, on) {
+      if (on) {
+        btn.classList.add('active');
+        btn.classList.remove('bg-white','text-slate-700','border-slate-300');
+        btn.classList.add('bg-slate-900','text-white','border-slate-900');
+      } else {
+        btn.classList.remove('active');
+        btn.classList.remove('bg-slate-900','text-white','border-slate-900');
+        btn.classList.add('bg-white','text-slate-700','border-slate-300');
+      }
+    }
+
+    // Init attendees toggle buttons
+    PEOPLE.forEach(p => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = p;
+      btn.dataset.name = p;
+      btn.className = 'px-3 py-1.5 rounded-xl text-sm border bg-white text-slate-700 border-slate-300';
+      btn.addEventListener('click', () => setAttendeeBtn(btn, !btn.classList.contains('active')));
+      fAttendees.appendChild(btn);
+    });
+
+    // Filters: attendees fixed, dates dynamic
+    PEOPLE.forEach(p => filterAttendee.appendChild(new Option(p, p)));
+
+    // Time options 08:00–20:00 every 30 minutes
+    (function populateTimes(){
+      const times = [];
+      for (let h = 8; h <= 20; h++) for (let m of [0,30]) times.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+      times.forEach(t => { fStart.appendChild(new Option(t,t)); fEnd.appendChild(new Option(t,t)); });
+      fEnd.selectedIndex = Math.min(1, fEnd.options.length-1);
+    })();
+
+    function openForm(key, data) {
+      editingKey = key || null;
+      formTitle.textContent = key ? 'Edit Event' : 'Add Event';
+      deleteBtn.classList.toggle('hidden', !key);
+
+      if (key && data) {
+        fDate.value = data.date || '';
+        fType.value = data.type || 'Regular';
+        fStart.value = data.start || '08:00';
+        fEnd.value = data.end || '08:00';
+        fLocation.value = data.location || '';
+        fCompany.value = data.company || '';
+        fContactName.value = data.contact?.name || '';
+        fContactTitle.value = data.contact?.title || '';
+        fContactPhone.value = data.contact?.phone || '';
+        fNotes.value = data.notes || '';
+        const setA = new Set(data.attendees || []);
+        [...fAttendees.children].forEach(btn => setAttendeeBtn(btn, setA.has(btn.dataset.name)));
+      } else {
+        fDate.value = '';
+        fType.value = 'Regular';
+        fStart.value = '08:00';
+        fEnd.value = '08:00';
+        fLocation.value = '';
+        fCompany.value = '';
+        fContactName.value = '';
+        fContactTitle.value = '';
+        fContactPhone.value = '';
+        fNotes.value = '';
+        [...fAttendees.children].forEach(btn => setAttendeeBtn(btn, false));
+      }
+      formModal.classList.remove('hidden');
+    }
+
+    const closeForm = () => formModal.classList.add('hidden');
+    const openContact = (contact) => {
+      cName.textContent = contact.name || '';
+      cTitle.textContent = contact.title || '';
+      cPhone.textContent = contact.phone || '';
+      cPhoneLink.href = contact.phone ? `tel:${contact.phone}` : '#';
+      contactModal.classList.remove('hidden');
+    };
+    const closeContact = () => contactModal.classList.add('hidden');
+    const openConfirm = (key) => { deleteKey = key; confirmModal.classList.remove('hidden'); };
+    const closeConfirm = () => { deleteKey = null; confirmModal.classList.add('hidden'); };
+
+    document.querySelectorAll('[data-close-form]').forEach(el => el.addEventListener('click', closeForm));
+    document.querySelectorAll('[data-close-contact]').forEach(el => el.addEventListener('click', closeContact));
+    document.querySelectorAll('[data-close-confirm]').forEach(el => el.addEventListener('click', closeConfirm));
+    document.getElementById('addBtn').addEventListener('click', () => openForm(null, null));
+
+    // Save (add or update)
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (fEnd.value < fStart.value) { alert('End time must be after start time'); return; }
+      const attendees = [...fAttendees.children].filter(btn => btn.classList.contains('active')).map(btn => btn.dataset.name);
+      const data = {
+        date: fDate.value,
+        type: fType.value,
+        start: fStart.value,
+        end: fEnd.value,
+        location: (fLocation.value && fLocation.value.trim()) ? fLocation.value.trim() : 'TBD',
+        company: (fCompany.value || '').trim(),
+        contact: { name: (fContactName.value || '').trim(), title: (fContactTitle.value || '').trim(), phone: (fContactPhone.value || '').trim() },
+        attendees,
+        notes: fNotes.value?.trim() || undefined,
+      };
+      // Now only require date & time
+      if (!data.date || !data.start || !data.end) { alert('Please fill Date, Start, and End.'); return; }
+
+      if (editingKey) {
+        update(ref(db, 'events/' + editingKey), data).then(closeForm);
+      } else {
+        const newRef = push(ref(db, 'events'));
+        set(newRef, data).then(closeForm);
+      }
+    });
+
+    document.getElementById('deleteBtn').addEventListener('click', () => { if (editingKey) openConfirm(editingKey); });
+    document.getElementById('confirmDelete').addEventListener('click', () => {
+      if (!deleteKey) return;
+      remove(ref(db, 'events/' + deleteKey)).then(() => { closeConfirm(); closeForm(); });
+    });
+
+    // Helpers
+    const companySearchUrl = (company) => {
+      const q = `${company} country region business area Developer SI manufacturer renewables ESS portfolio financial status`;
+      return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+    };
+    const locationUrl = (loc) => loc.toLowerCase().includes('booth')
+      ? 'https://re25.mapyourshow.com/8_0/exhview/index.cfm'
+      : `https://www.google.com/maps/search/${encodeURIComponent(loc)}`;
+
+    function ensureDateFilterOptions(allEvents) {
+      const dates = [...new Set(allEvents.map(e => e.date))].sort();
+      const current = new Set([...filterDate.options].map(o => o.value));
+      dates.forEach(d => { if (!current.has(d)) filterDate.appendChild(new Option(d, d)); });
+    }
+
+    let cache = [];
+
+    // Subscribe to events (and legacy 'schedules' for compatibility)
+    onValue(ref(db, 'events'), (snap) => {
+      const obj = snap.val() || {};
+      const arr = Object.entries(obj).map(([key, v]) => ({ key, ...(v || {}) }));
+      cache = mergeWithLegacy(cache, arr, 'events');
+      ensureDateFilterOptions(arr);
+      render();
+    });
+    onValue(ref(db, 'schedules'), (snap) => {
+      const obj = snap.val() || {};
+      const arr = Object.entries(obj).map(([key, v]) => ({ key, ...(v || {}) }));
+      cache = mergeWithLegacy(cache, arr, 'schedules');
+      ensureDateFilterOptions(arr);
+      render();
+    });
+
+    function mergeWithLegacy(prev, incoming, src) {
+      const others = prev.filter(x => x._src && x._src !== src);
+      return [...incoming.map(x => ({...x, _src: src})), ...others];
+    }
+
+    [filterDate, filterAttendee, filterType].forEach(el => el.addEventListener('change', render));
+
+    function render() {
+      const fd = filterDate.value; const fa = filterAttendee.value; const ft = filterType.value;
+      const items = cache
+        .filter(e => !fd || e.date === fd)
+        .filter(e => !fa || (Array.isArray(e.attendees) && e.attendees.includes(fa)))
+        .filter(e => !ft || e.type === ft)
+        .sort((a,b) => (a.date+a.start).localeCompare(b.date+b.start));
+
+      listEl.innerHTML = '';
+      if (items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'text-center text-slate-500 text-sm py-10';
+        empty.textContent = 'No events match current filters.';
+        listEl.appendChild(empty);
+        return;
+      }
+
+      items.forEach(ev => {
+        const style = TYPE_STYLES[ev.type || 'Regular'];
+        const card = document.createElement('div');
+        card.className = `${style.card} rounded-2xl p-4 shadow-sm`;
+
+        const companyRow = ev.company ? `<a class="underline underline-offset-2 decoration-slate-300 hover:decoration-slate-500 text-slate-800" href="${companySearchUrl(ev.company)}" target="_blank">${ev.company}</a>` : '';
+        const contactRow = ev.contact?.name ? `<button class="text-slate-700 hover:underline underline-offset-2" data-contact>${ev.contact.name}</button>` : '';
+        const dot = (companyRow && contactRow) ? `<span class="mx-1 text-slate-400">•</span>` : '';
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="text-base font-semibold">${ev.start || ''}–${ev.end || ''}</h3>
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${style.badge}">${ev.type || 'Regular'}</span>
+              </div>
+              <div class="mt-1 text-sm break-words whitespace-normal">
+                <a class="underline text-slate-800 break-words whitespace-normal" target="_blank" href="${locationUrl(ev.location || '')}">${ev.location || ''}</a>
+              </div>
+              <div class="mt-1 text-sm">${companyRow}${dot}${contactRow}</div>
+              ${ev.notes ? `<p class="mt-2 text-xs text-slate-600 leading-relaxed">${ev.notes}</p>` : ''}
+              <div class="mt-2 flex gap-1.5 flex-nowrap whitespace-nowrap overflow-x-auto no-scrollbar">
+                ${PEOPLE.map(p => {
+                  const on = (ev.attendees||[]).includes(p);
+                  return `<span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${on ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}">${p}</span>`;
+                }).join('')}
+              </div>
+            </div>
+            <div class="shrink-0 flex flex-col gap-2 items-end">
+              <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-slate-100 text-slate-600">${ev.date || ''}</span>
+              <div class="flex items-center gap-1">
+                <a class="text-[11px] px-2 py-1 rounded-lg border border-slate-300 hover:bg-slate-50" target="_blank" href="${locationUrl(ev.location || '')}">Map</a>
+                <button class="text-[11px] px-2 py-1 rounded-lg border border-slate-300 hover:bg-slate-50" data-edit>Edit</button>
+                <button class="text-[11px] px-2 py-1 rounded-lg border border-red-300 text-red-600 hover:bg-red-50" data-del>Del</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        card.querySelector('[data-contact]')?.addEventListener('click', () => openContact(ev.contact || {}));
+        card.querySelector('[data-edit]')?.addEventListener('click', () => openForm(ev.key, ev));
+        card.querySelector('[data-del]')?.addEventListener('click', () => openConfirm(ev.key));
+
+        listEl.appendChild(card);
+      });
+    }
+  </script></body>
+</html>
